@@ -1,44 +1,48 @@
-package ui.handlers;
+package Util;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Candidates {
-	String projectPath;	
+public class Candidate {	
 	String filePath;
+	String methodName;	
 	List<Integer> startIndex;
 	List<Integer> endIndex;	
 	List<Boolean> isExtractable;
 	
-	public Candidates(){
+	
+	public Candidate(){
 		
 	}
 	
-	public Candidates(String projectPath, String filePath,
+	public Candidate(String filePath,
 			List<Integer> startIndex, List<Integer> endIndex) {
-		super();
-		this.projectPath = projectPath;
+		super();		
 		this.filePath = filePath;
 		this.startIndex = startIndex;
-		this.endIndex = endIndex;
+		this.endIndex = endIndex;		
 	}
 	
-	public Candidates(String projectPath,String[] data){
-		this.projectPath = projectPath;
-		this.filePath = data[0];
+	public Candidate(String filepath, String methodName, int startIndex, int endIndex){
+		this.filePath = filepath;
 		this.startIndex = new ArrayList<Integer>();
 		this.endIndex = new ArrayList<Integer>();
-		this.startIndex.add(Integer.parseInt(data[2]));
-		this.endIndex.add(Integer.parseInt(data[4]));
+//		this.startIndex.add(Integer.parseInt(data[2]));
+		this.startIndex.add(startIndex);
+		this.endIndex.add(endIndex);	
+//		this.endIndex.add(Integer.parseInt(data[4]));
+		this.methodName = methodName;
 		this.isExtractable = new ArrayList<Boolean>();
 	}
+		
+	public String getMethodName() {
+		return methodName;
+	}
+
+	public void setMethodName(String methodName) {
+		this.methodName = methodName;
+	}
 	
-	public String getProjectPath() {
-		return projectPath;
-	}
-	public void setProjectPath(String projectPath) {
-		this.projectPath = projectPath;
-	}
 	public String getFilePath() {
 		return filePath;
 	}

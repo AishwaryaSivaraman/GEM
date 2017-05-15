@@ -1,4 +1,4 @@
-package ui.handlers;
+package Util;
 
 public class InvocationInformation {
 	String caller;

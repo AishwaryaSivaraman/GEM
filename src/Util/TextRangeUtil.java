@@ -1,4 +1,4 @@
-package ui.handlers;
+package Util;
 
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.ISourceRange;

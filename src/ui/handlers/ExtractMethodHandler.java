@@ -4,6 +4,7 @@ import gumtree.spoon.AstComparator;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -31,23 +32,25 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 
+import Util.CandidateValidation;
+import Util.RankCandidates;
+
 public class ExtractMethodHandler extends AbstractHandler{
 	IFile REF_FILE;
 	List<String> methods;
-	String PATH;
+	String PATH_TO_CANDIDATES;
+	String PYTHON_PATH;
 	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {		 
-//		showPopUp("Hello");
+	public Object execute(ExecutionEvent event) throws ExecutionException {	
+		parseArguments();
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);		
 		ISelection selection = HandlerUtil.getCurrentSelection(event);
 		String args[] = Platform.getApplicationArgs();
-		PATH = Paths.get(".").toAbsolutePath().normalize().toString();
+		PATH_TO_CANDIDATES = Paths.get(".").toAbsolutePath().normalize().toString();
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-
-		IWorkspaceRoot root = workspace.getRoot();
-
+		IWorkspaceRoot root = workspace.getRoot();			
 		IPath rootPath = root.getLocation();
-		PATH = rootPath.toOSString();
+		PATH_TO_CANDIDATES = rootPath.toOSString()+"/";
 		try {
 			boolean isJavaFile = checkIfCommandOnJavaFile();
 			
@@ -63,12 +66,31 @@ public class ExtractMethodHandler extends AbstractHandler{
 				TextSelection textSel = (TextSelection) selection;
 				String text = textSel.getText();
 				startLine = textSel.getStartLine();
-				generateFeatures(REF_FILE.getRawLocation().toOSString(), text, startLine);
-				if(selection instanceof TextSelection){
-					
-				}
-			}
-			 
+				if(methods.contains(text)){
+					if(selection instanceof TextSelection){
+						generateFeatures(REF_FILE.getRawLocation().toOSString(), text, startLine);
+						CandidateValidation validation = new CandidateValidation(PATH_TO_CANDIDATES, REF_FILE.getRawLocation().toOSString(), "test_feasibility.csv",
+								PATH_TO_CANDIDATES);
+						validation.processCandidates();
+						//call the python process
+						RankCandidates rank = new RankCandidates();
+						try{
+							rank.callPythonProcess(PATH_TO_CANDIDATES,PYTHON_PATH);
+						} catch(Exception ex){
+							MessageDialog.openInformation(
+									window.getShell(),
+									"UI",
+									"Exception while ranking candidates. Make sure python script is in the same path as the created csv files.");
+						}
+						
+					}						
+				} else{
+					MessageDialog.openInformation(
+							window.getShell(),
+							"UI",
+							"Please Choose a Method Name from method definition for refactoring");
+				}								
+			}			 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			MessageDialog.openInformation(
@@ -76,32 +98,44 @@ public class ExtractMethodHandler extends AbstractHandler{
 					"UI",
 					"Please Choose a valid file");
 			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			//Throw error back with event
+			e.printStackTrace();
+			MessageDialog.openInformation(
+					window.getShell(),
+					"UI",
+					"Error while processing the chosen method please choose correctly.");
 		}
 		return null;
 	}
 	
-	public void generateFeatures(String filePath,String methodName, int lineNo){
-		AstComparator compartor = new AstComparator();
-		try {			
-			System.out.println("Output is saved in dir : "+PATH);
-			compartor.compare(filePath,methodName,lineNo,PATH);
-//			compartor.compare("/Users/Aish/Downloads/JHotDraw5.2/sources/CH/ifa/draw/util/Iconkit.java", "getImage", 125);
-//			compartor.compare("/Users/Aish/Downloads/JHotDraw5.2/sources/CH/ifa/draw/util/Iconkit.java", "getImage", 125,"/Users/Aish/Downloads/");
-			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	public void generateFeatures(String filePath,String methodName, int lineNo) throws Exception{
+		AstComparator compartor = new AstComparator();					
+		System.out.println("Output is saved in dir : "+PATH_TO_CANDIDATES);
+		compartor.compare(filePath,methodName,lineNo,PATH_TO_CANDIDATES);
+//			compartor.compare("/Users/Aish/Downloads/JHotDraw5.2/sources/CH/ifa/draw/util/Iconkit.java", "getImage", 125,"/Users/Aish/Downloads/");					
+	}
+	
+	private void parseArguments(){
+		String args[] = Platform.getCommandLineArgs();
+		for(int i=0;i<args.length;i++){
+			if(args[i].contains("pythonPath")){
+				PYTHON_PATH = args[i+1];
+				i++;
+			}
 		}
 	}
 	
 	private void getAllMethodNames() {
 		// TODO Auto-generated method stub		
 	    ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(REF_FILE);
+	    methods = new ArrayList<String>();
 	    try {
 			IType[] allTypes = compilationUnit.getAllTypes();
 			for (IType type : allTypes){
 				for(IMethod method : type.getMethods()){
-					System.out.println(method.getElementName());
+					methods.add(method.getElementName());
 				}
 			}			
 		} catch (JavaModelException e) {
@@ -111,9 +145,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 	    
 	}
 
-	public boolean checkIfCommandOnJavaFile() throws FileNotFoundException{
-		 
-	        
+	public boolean checkIfCommandOnJavaFile() throws FileNotFoundException{		 	        
 		IWorkbenchPart workbenchPart = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActivePart(); 
 		IFile file = (IFile) workbenchPart.getSite().getPage().getActiveEditor().getEditorInput().getAdapter(IFile.class);
 		if (file == null) throw new FileNotFoundException();

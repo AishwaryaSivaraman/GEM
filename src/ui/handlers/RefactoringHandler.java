@@ -40,7 +40,8 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ltk.core.refactoring.Change;
 import org.eclipse.ltk.core.refactoring.RefactoringStatus;
 
-import ui.handlers.Candidates;
+import Util.Candidates;
+import Util.TextRangeUtil;
 
 /**
  * Our sample handler extends AbstractHandler, an IHandler base class.

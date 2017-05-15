@@ -54,6 +54,9 @@ import org.eclipse.osgi.framework.util.FilePath;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
 
+import Util.InvocationInformation;
+import Util.TextRangeUtil;
+
 public class DataHandler extends AbstractHandler{
 	
 	public static Hashtable<String, Integer> methodTable;
