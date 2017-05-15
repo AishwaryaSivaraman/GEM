@@ -77,5 +77,14 @@
             class="ui.handlers.DataHandler">
       </handler>
    </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            class="ui.RefactoringResults"
+            id="UI.view1"
+            name="Results"
+            restorable="true">
+      </view>
+   </extension>
 
 </plugin>

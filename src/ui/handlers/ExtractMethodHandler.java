@@ -2,7 +2,11 @@ package ui.handlers;
 
 import gumtree.spoon.AstComparator;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +36,10 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 
+import ui.RefactoringResults;
 import Util.CandidateValidation;
+import Util.ExtractMethodResults;
+import Util.ModelProvider;
 import Util.RankCandidates;
 
 public class ExtractMethodHandler extends AbstractHandler{
@@ -40,17 +47,20 @@ public class ExtractMethodHandler extends AbstractHandler{
 	List<String> methods;
 	String PATH_TO_CANDIDATES;
 	String PYTHON_PATH;
+	private String currentMethod;
+	List<ExtractMethodResults> results;
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {	
 		parseArguments();
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);		
-		ISelection selection = HandlerUtil.getCurrentSelection(event);
-		String args[] = Platform.getApplicationArgs();
-		PATH_TO_CANDIDATES = Paths.get(".").toAbsolutePath().normalize().toString();
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot root = workspace.getRoot();			
-		IPath rootPath = root.getLocation();
-		PATH_TO_CANDIDATES = rootPath.toOSString()+"/";
+		ISelection selection = HandlerUtil.getCurrentSelection(event);		
+		setFileStoragePath();
+		
+		deleteFile("test_candidates.csv");
+		deleteFile("test_feasibility.csv");
+		deleteFile("test_features.csv");
+		deleteFile("test_prob.csv");
+		
 		try {
 			boolean isJavaFile = checkIfCommandOnJavaFile();
 			
@@ -65,6 +75,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 				int startLine;
 				TextSelection textSel = (TextSelection) selection;
 				String text = textSel.getText();
+				currentMethod = text;
 				startLine = textSel.getStartLine();
 				if(methods.contains(text)){
 					if(selection instanceof TextSelection){
@@ -75,14 +86,16 @@ public class ExtractMethodHandler extends AbstractHandler{
 						//call the python process
 						RankCandidates rank = new RankCandidates();
 						try{
-							rank.callPythonProcess(PATH_TO_CANDIDATES,PYTHON_PATH);
+							rank.callPythonProcess(PATH_TO_CANDIDATES,PYTHON_PATH);	
+							readProbabilityResults();
+							ModelProvider.INSTANCE.setResults(results);
+							RefactoringResults.updateViewer();
 						} catch(Exception ex){
 							MessageDialog.openInformation(
 									window.getShell(),
 									"UI",
 									"Exception while ranking candidates. Make sure python script is in the same path as the created csv files.");
-						}
-						
+						}						
 					}						
 				} else{
 					MessageDialog.openInformation(
@@ -109,12 +122,18 @@ public class ExtractMethodHandler extends AbstractHandler{
 		}
 		return null;
 	}
+
+	private void setFileStoragePath() {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot root = workspace.getRoot();			
+		IPath rootPath = root.getLocation();
+		PATH_TO_CANDIDATES = rootPath.toOSString()+"/";
+	}
 	
 	public void generateFeatures(String filePath,String methodName, int lineNo) throws Exception{
 		AstComparator compartor = new AstComparator();					
 		System.out.println("Output is saved in dir : "+PATH_TO_CANDIDATES);
-		compartor.compare(filePath,methodName,lineNo,PATH_TO_CANDIDATES);
-//			compartor.compare("/Users/Aish/Downloads/JHotDraw5.2/sources/CH/ifa/draw/util/Iconkit.java", "getImage", 125,"/Users/Aish/Downloads/");					
+		compartor.compare(filePath,methodName,lineNo,PATH_TO_CANDIDATES);								
 	}
 	
 	private void parseArguments(){
@@ -127,6 +146,16 @@ public class ExtractMethodHandler extends AbstractHandler{
 		}
 	}
 	
+	private void deleteFile(String fileName){
+		try{
+			File file = new File(PATH_TO_CANDIDATES+fileName);
+			if(file.delete()){
+				System.out.println("Deleted "+fileName);
+			}
+		} catch(Exception ex){
+			System.out.println("Please delete the csv file: "+ fileName +" at location : "+PATH_TO_CANDIDATES);
+		}			
+	}
 	private void getAllMethodNames() {
 		// TODO Auto-generated method stub		
 	    ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(REF_FILE);
@@ -156,5 +185,21 @@ public class ExtractMethodHandler extends AbstractHandler{
 		return false;
 	}
 	
-	
+	public void readProbabilityResults() throws IOException {
+		results = new ArrayList<>();
+		String csvFile = PATH_TO_CANDIDATES+"test_prob.csv";
+        BufferedReader br = null;
+        String line = "";
+        String cvsSplitBy = ",";
+        br = new BufferedReader(new FileReader(csvFile));
+        int count=1;
+        while ((line = br.readLine()) != null) {
+            // use comma as separator
+            String[] data = line.split(cvsSplitBy);
+            if(count<6){
+            	results.add(new ExtractMethodResults(String.valueOf(count), currentMethod, data[0],String.valueOf(Integer.parseInt(data[1])-1), data[2]));
+            }            
+            count++;
+        }
+	}
 }
