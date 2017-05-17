@@ -9,4 +9,9 @@ Steps to Import:
 3. Run as ecliplse application.
 
 Steps to Generate Refactorings:
-1. Open any 
+1. Open any Java file in the eclipse IDE.
+2. Text select the method name for which you want to generate extract method refactorings and press CMD/Win+6.
+3. Now open the Results view to see the top-5 refactoring candidates. 
+4. Click on each row in the results table to view the candidate in the Java file.
+
+
