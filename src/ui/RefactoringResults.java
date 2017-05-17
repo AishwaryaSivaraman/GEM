@@ -1,19 +1,30 @@
 package ui;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.jdt.core.ISourceRange;
+import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 
+import ui.handlers.ExtractMethodHandler;
 import Util.ExtractMethodResults;
 import Util.ModelProvider;
+import Util.TextRangeUtil;
 
 public class RefactoringResults extends ViewPart{
 
@@ -31,13 +42,41 @@ public class RefactoringResults extends ViewPart{
 		viewer.refresh();
 	}
 	
-	 private void createViewer(Composite parent) {
+	public void selectCode(int startLineNo, int endLineNo){
+//		IFile myfile = ExtractMethodHandler.REF_FILE;
+//		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+//		ITextEditor editor = (ITextEditor) IDE.openEditor(page, myfile);
+		try {
+			ISourceRange range = TextRangeUtil.getSelection(ExtractMethodHandler.compilationUnit, startLineNo, 0, endLineNo, 0);
+			ISelection selection =new TextSelection(range.getOffset(), range.getLength()); 
+			PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor().getSite().getSelectionProvider().setSelection(selection);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private void createViewer(Composite parent) {
 	        viewer = new TableViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.FULL_SELECTION | SWT.BORDER);
 	              
 	        createColumns(parent, viewer);
 	        final Table table = viewer.getTable();
 	        table.setHeaderVisible(true);
 	        table.setLinesVisible(true);
+	        
+	        table.addListener(SWT.Selection, new Listener() {				
+				@Override
+				public void handleEvent(Event event) {
+					ExtractMethodResults currentSelection = null;
+			        TableItem[] selection = table.getSelection();
+			        for (int i = 0; i < selection.length; i++){
+			        	currentSelection = (ExtractMethodResults) selection[i].getData();
+			        	
+			        }
+			        selectCode(Integer.parseInt(currentSelection.getStartinLineNo()), Integer.parseInt(currentSelection.getEndingLineNo()));  					
+				}
+			});
 
 	        viewer.setContentProvider(new ArrayContentProvider());
 	        // get the content for the viewer, setInput will call getElements in the

@@ -43,17 +43,21 @@ import Util.ModelProvider;
 import Util.RankCandidates;
 
 public class ExtractMethodHandler extends AbstractHandler{
-	IFile REF_FILE;
+	public static IFile REF_FILE;
 	List<String> methods;
 	String PATH_TO_CANDIDATES;
 	String PYTHON_PATH;
 	private String currentMethod;
 	List<ExtractMethodResults> results;
+	public static ICompilationUnit compilationUnit;
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {	
 		parseArguments();
+		
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);		
 		ISelection selection = HandlerUtil.getCurrentSelection(event);		
+		
+
 		setFileStoragePath();
 		
 		deleteFile("test_candidates.csv");
@@ -74,6 +78,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 				getAllMethodNames();
 				int startLine;
 				TextSelection textSel = (TextSelection) selection;
+				int offset = textSel.getOffset();
 				String text = textSel.getText();
 				currentMethod = text;
 				startLine = textSel.getStartLine();
@@ -158,7 +163,8 @@ public class ExtractMethodHandler extends AbstractHandler{
 	}
 	private void getAllMethodNames() {
 		// TODO Auto-generated method stub		
-	    ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(REF_FILE);
+	    compilationUnit = (ICompilationUnit) JavaCore.create(REF_FILE);
+	    
 	    methods = new ArrayList<String>();
 	    try {
 			IType[] allTypes = compilationUnit.getAllTypes();
