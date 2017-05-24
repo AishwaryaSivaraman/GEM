@@ -15,5 +15,6 @@ Steps to Generate Refactorings:
 4. Click on each row in the results table to view the candidate in the Java file.
 
 This is an Example:
-![image](http://github.com/AishwaryaSivaraman/GEM/tree/master/images/Example.png)
+
+![alt text](images/Example.png "Example goes here")
 
