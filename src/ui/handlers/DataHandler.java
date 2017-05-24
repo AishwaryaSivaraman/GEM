@@ -50,7 +50,7 @@ import org.eclipse.jdt.internal.corext.refactoring.util.RefactoringASTParser;
 import org.eclipse.jdt.internal.ui.javaeditor.ASTProvider;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ltk.core.refactoring.RefactoringStatus;
-import org.eclipse.osgi.framework.util.FilePath;
+//import org.eclipse.osgi.framework.util.FilePath;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
 
