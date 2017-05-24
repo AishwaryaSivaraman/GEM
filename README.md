@@ -14,4 +14,6 @@ Steps to Generate Refactorings:
 3. Now open the Results view to see the top-5 refactoring candidates. 
 4. Click on each row in the results table to view the candidate in the Java file.
 
+This is an Example:
+![image](http://github.com/XuSihan/GEM/raw/master/images/Example.png)
 

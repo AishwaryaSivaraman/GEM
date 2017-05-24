@@ -47,7 +47,7 @@ public class RefactoringResults extends ViewPart{
 //		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 //		ITextEditor editor = (ITextEditor) IDE.openEditor(page, myfile);
 		try {
-			ISourceRange range = TextRangeUtil.getSelection(ExtractMethodHandler.compilationUnit, startLineNo, 0, endLineNo, 0);
+			ISourceRange range = TextRangeUtil.getSelection(ExtractMethodHandler.compilationUnit, startLineNo, 0, endLineNo+1, 0);
 			ISelection selection =new TextSelection(range.getOffset(), range.getLength()); 
 			PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor().getSite().getSelectionProvider().setSelection(selection);
 		} catch (Exception e) {

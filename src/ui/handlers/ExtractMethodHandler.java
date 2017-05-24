@@ -202,7 +202,7 @@ public class ExtractMethodHandler extends AbstractHandler{
         while ((line = br.readLine()) != null) {
             // use comma as separator
             String[] data = line.split(cvsSplitBy);
-            if(count<6){
+            if(count<31){
             	results.add(new ExtractMethodResults(String.valueOf(count), currentMethod, data[0],String.valueOf(Integer.parseInt(data[1])-1), data[2]));
             }            
             count++;
