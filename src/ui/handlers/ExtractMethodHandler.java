@@ -18,9 +18,15 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.Plugin;
+import org.eclipse.core.runtime.Preferences;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
@@ -35,7 +41,11 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.osgi.service.prefs.BackingStoreException;
 
+import com.sun.mail.imap.protocol.Status;
+
+import ui.Activator;
 import ui.RefactoringResults;
 import Util.CandidateValidation;
 import Util.ExtractMethodResults;
@@ -50,9 +60,12 @@ public class ExtractMethodHandler extends AbstractHandler{
 	private String currentMethod;
 	List<ExtractMethodResults> results;
 	public static ICompilationUnit compilationUnit;
+	public static ILog log;
 	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {	
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		log = Activator.getDefault().getLog();
 		parseArguments();
+		setPythonPath();
 		
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);		
 		ISelection selection = HandlerUtil.getCurrentSelection(event);		
@@ -73,6 +86,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 						window.getShell(),
 						"UI",
 						"Please Choose a Java File and Method to refactor");
+				log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Please Choose a Java File and Method to refactor"));
 			} else{
 				//process the file get the methods and return the menu
 				getAllMethodNames();
@@ -91,7 +105,8 @@ public class ExtractMethodHandler extends AbstractHandler{
 						//call the python process
 						RankCandidates rank = new RankCandidates();
 						try{
-							rank.callPythonProcess(PATH_TO_CANDIDATES,PYTHON_PATH);	
+							log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Path and python "+PATH_TO_CANDIDATES+" , "+PYTHON_PATH));
+							rank.callPythonProcess(PATH_TO_CANDIDATES,PYTHON_PATH);								
 							readProbabilityResults();
 							ModelProvider.INSTANCE.setResults(results);
 							RefactoringResults.updateViewer();
@@ -100,13 +115,15 @@ public class ExtractMethodHandler extends AbstractHandler{
 									window.getShell(),
 									"UI",
 									"Exception while ranking candidates. Make sure python script is in the same path as the created csv files.");
+							log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Exception while ranking candidates. Make sure python script is in the same path as the created csv files."));
 						}						
 					}						
 				} else{
 					MessageDialog.openInformation(
 							window.getShell(),
 							"UI",
-							"Please Choose a Method Name from method definition for refactoring");
+							"Please Choose a Method Name from method definition for refactoring");										
+					log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Please Choose a Method Name from method definition for refactoring"));
 				}								
 			}			 
 		} catch (FileNotFoundException e) {
@@ -116,6 +133,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 					"UI",
 					"Please Choose a valid file");
 			e.printStackTrace();
+			log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, e.toString()));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			//Throw error back with event
@@ -124,6 +142,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 					window.getShell(),
 					"UI",
 					"Error while processing the chosen method please choose correctly.");
+			log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, e.toString()));
 		}
 		return null;
 	}
@@ -132,12 +151,13 @@ public class ExtractMethodHandler extends AbstractHandler{
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot root = workspace.getRoot();			
 		IPath rootPath = root.getLocation();
-		PATH_TO_CANDIDATES = rootPath.toOSString()+"/";
+		PATH_TO_CANDIDATES = rootPath.toOSString()+"/gems/";
 	}
 	
 	public void generateFeatures(String filePath,String methodName, int lineNo) throws Exception{
 		AstComparator compartor = new AstComparator();					
 		System.out.println("Output is saved in dir : "+PATH_TO_CANDIDATES);
+		log.log(new org.eclipse.core.runtime.Status(IStatus.INFO, Activator.PLUGIN_ID,"Output is saved in dir : "+PATH_TO_CANDIDATES));
 		compartor.compare(filePath,methodName,lineNo,PATH_TO_CANDIDATES);								
 	}
 	
@@ -159,6 +179,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 			}
 		} catch(Exception ex){
 			System.out.println("Please delete the csv file: "+ fileName +" at location : "+PATH_TO_CANDIDATES);
+			log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Please delete the csv file: "+ fileName +" at location : "+PATH_TO_CANDIDATES));
 		}			
 	}
 	private void getAllMethodNames() {
@@ -176,6 +197,7 @@ public class ExtractMethodHandler extends AbstractHandler{
 		} catch (JavaModelException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, e.toString()));
 		}
 	    
 	}
@@ -208,4 +230,32 @@ public class ExtractMethodHandler extends AbstractHandler{
             count++;
         }
 	}
+	
+	public void setPythonPath(){
+		IEclipsePreferences prefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);	
+		
+		log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, prefs.absolutePath()));
+		try {
+			if(prefs.keys().length==0){
+				prefs.put("PYTHON_PATH", "<replace_this_with_python_path>");
+				log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Lenght is 0"));
+			} else{
+				for (String key: prefs.keys()){
+					if(key.compareTo("PYTHON_PATH")==0){
+						String def;
+						PYTHON_PATH = prefs.get("PYTHON_PATH", null);
+						log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "Key found and the value is "+PYTHON_PATH));
+					} else{
+						prefs.put("PYTHON_PATH", "<replace_this_with_python_path>");
+						log.log(new org.eclipse.core.runtime.Status(IStatus.ERROR, Activator.PLUGIN_ID, "key notfound"));
+					}
+				}
+			}			
+		} catch (BackingStoreException e) {
+			// TODO Auto-generated catch block		
+			e.printStackTrace();
+		}
+		
+	}
+	
 }
